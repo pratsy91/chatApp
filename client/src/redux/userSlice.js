@@ -16,6 +16,12 @@ const userSlice = createSlice({
     SetAllUsers: (state, action) => {
       state.allUsers = action.payload;
     },
+    SetAllChats: (state, action) => {
+      state.allChats = action.payload;
+    },
+    SetSelectedChat: (state, action) => {
+      state.selectedChat = action.payload;
+    },
   },
 });
 
