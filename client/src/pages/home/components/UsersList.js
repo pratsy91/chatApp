@@ -4,9 +4,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { CreateNewChat } from "../../../apicalls/chats";
 import { HideLoader, ShowLoader } from "../../../redux/loaderSlice";
 import { SetAllChats, SetSelectedChat } from "../../../redux/userSlice";
+import moment from "moment";
 import store from "../../../redux/store";
 
-function UsersList({ searchKey, socket, onlineUsers }) {
+function UsersList({ searchKey }) {
   const { allUsers, allChats, user, selectedChat } = useSelector(
     (state) => state.userReducer
   );
@@ -64,6 +65,25 @@ function UsersList({ searchKey, socket, onlineUsers }) {
     return false;
   };
 
+  const getDateInRegualarFormat = (date) => {
+    let result = "";
+
+    // if date is today return time in hh:mm format
+    if (moment(date).isSame(moment(), "day")) {
+      result = moment(date).format("hh:mm");
+    }
+    // if date is yesterday return yesterday and time in hh:mm format
+    else if (moment(date).isSame(moment().subtract(1, "day"), "day")) {
+      result = `Yesterday ${moment(date).format("hh:mm")}`;
+    }
+    // if date is this year return date and time in MMM DD hh:mm format
+    else if (moment(date).isSame(moment(), "year")) {
+      result = moment(date).format("MMM DD hh:mm");
+    }
+
+    return result;
+  };
+
   const getLastMsg = (userObj) => {
     const chat = allChats.find((chat) =>
       chat.members.map((mem) => mem._id).includes(userObj._id)
@@ -78,9 +98,9 @@ function UsersList({ searchKey, socket, onlineUsers }) {
           <h1 className="text-gray-600 text-sm">
             {lastMsgPerson} {chat?.lastMessage?.text}
           </h1>
-          {/* <h1 className="text-gray-500 text-sm">
+          <h1 className="text-gray-500 text-sm">
             {getDateInRegualarFormat(chat?.lastMessage?.createdAt)}
-          </h1> */}
+          </h1>
         </div>
       );
     }
@@ -140,11 +160,6 @@ function UsersList({ searchKey, socket, onlineUsers }) {
                 <div className="flex gap-1">
                   <div className="flex gap-1 items-center">
                     <h1>{userObj.name}</h1>
-                    {onlineUsers.includes(userObj._id) && (
-                      <div>
-                        <div className="bg-green-700 h-3 w-3 rounded-full"></div>
-                      </div>
-                    )}
                   </div>
                   {getUnreadMessages(userObj)}
                 </div>

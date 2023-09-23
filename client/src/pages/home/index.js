@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
+import ChatArea from "./components/ChatArea";
 import UserSearch from "./components/UserSearch";
 import UsersList from "./components/UsersList";
 
@@ -16,6 +17,11 @@ function Home() {
       </div>
 
       {/* 2nd part   chatbox */}
+      {selectedChat && (
+        <div className="w-full">
+          <ChatArea />
+        </div>
+      )}
 
       {!selectedChat && (
         <div className="w-full h-[80vh]  items-center justify-center flex bg-white flex-col">
