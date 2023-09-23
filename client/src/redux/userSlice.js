@@ -25,6 +25,7 @@ const userSlice = createSlice({
   },
 });
 
-export const { SetUser, SetAllUsers } = userSlice.actions;
+export const { SetUser, SetAllUsers, SetAllChats, SetSelectedChat } =
+  userSlice.actions;
 
 export default userSlice.reducer;
