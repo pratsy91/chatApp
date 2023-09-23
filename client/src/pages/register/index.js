@@ -1,14 +1,42 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import { RegisterUser } from "../../apicalls/users";
+import { HideLoader, ShowLoader } from "../../redux/loaderSlice";
 
 function Register() {
-  const [user, setUser] = useState({
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [user, setUser] = React.useState({
     name: "",
     email: "",
     password: "",
   });
 
-  const register = async () => {};
+  const register = async () => {
+    try {
+      console.log("called");
+      dispatch(ShowLoader());
+      const response = await RegisterUser(user);
+      console.log(response);
+      dispatch(HideLoader());
+      if (response.success) {
+        toast.success(response.message);
+      } else {
+        toast.error(response.message);
+      }
+    } catch (error) {
+      dispatch(HideLoader());
+      toast.error(error.message);
+    }
+  };
+
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      navigate("/");
+    }
+  }, [navigate]);
 
   return (
     <div className="h-screen bg-primary flex items-center justify-center">
@@ -16,7 +44,7 @@ function Register() {
         <div className="flex gap-2">
           <i className="ri-message-3-line text-2xl text-primary"></i>
           <h1 className="text-2xl uppercase font-semibold text-primary">
-            Cat-App register
+            Chat-App register{" "}
           </h1>
         </div>
         <hr />

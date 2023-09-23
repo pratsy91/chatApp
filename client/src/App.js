@@ -4,6 +4,7 @@ import Register from "./pages/register";
 import { Toaster } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import Loader from "./components/Loader";
+import Home from "./pages/home";
 
 function App() {
   const { loader } = useSelector((state) => state.loaderReducer);
@@ -13,6 +14,7 @@ function App() {
       {loader && <Loader />}
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
