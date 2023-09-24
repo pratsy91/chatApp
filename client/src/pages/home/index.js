@@ -3,6 +3,9 @@ import { useSelector } from "react-redux";
 import ChatArea from "./components/ChatArea";
 import UserSearch from "./components/UserSearch";
 import UsersList from "./components/UsersList";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:5000");
 
 function Home() {
   const [searchKey, setSearchKey] = React.useState("");
