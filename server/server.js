@@ -21,8 +21,16 @@ const io = require("socket.io")(server, {
 });
 
 io.on("connection", (socket) => {
-  // socket events will be here
-  console.log(socket.id);
+  socket.on("join-room", (userId) => {
+    socket.join(userId);
+  });
+
+  // send message to clients (who are present in members array)
+  socket.on("send-message", (message) => {
+    io.to(message.members[0])
+      .to(message.members[1])
+      .emit("receive-message", message);
+  });
 });
 app.use("/api/users", usersRoute);
 app.use("/api/chats", chatsRoute);

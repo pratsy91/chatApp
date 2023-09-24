@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { GetMessages, SendMessage } from "../../../apicalls/messages";
+import { ClearChatMessages } from "../../../apicalls/chats";
 import { HideLoader, ShowLoader } from "../../../redux/loaderSlice";
 import toast from "react-hot-toast";
 import moment from "moment";
@@ -8,8 +9,6 @@ import { SetAllChats } from "../../../redux/userSlice";
 import store from "../../../redux/store";
 
 function ChatArea({ socket }) {
-  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
-  const [isReceipentTyping, setIsReceipentTyping] = React.useState(false);
   const dispatch = useDispatch();
   const [newMessage, setNewMessage] = React.useState("");
   const { selectedChat, user, allChats } = useSelector(
@@ -28,13 +27,19 @@ function ChatArea({ socket }) {
         text: newMessage,
         image,
       };
+      // send message to server using socket
+      socket.emit("send-message", {
+        ...message,
+        members: selectedChat.members.map((mem) => mem._id),
+        createdAt: moment().format("DD-MM-YYYY hh:mm:ss"),
+        read: false,
+      });
 
       // send message to server to save in db
       const response = await SendMessage(message);
 
       if (response.success) {
         setNewMessage("");
-        setShowEmojiPicker(false);
       }
     } catch (error) {
       console.log(error);
@@ -52,6 +57,29 @@ function ChatArea({ socket }) {
       }
     } catch (error) {
       dispatch(HideLoader());
+      toast.error(error.message);
+    }
+  };
+
+  const clearUnreadMessages = async () => {
+    try {
+      socket.emit("clear-unread-messages", {
+        chat: selectedChat._id,
+        members: selectedChat.members.map((mem) => mem._id),
+      });
+
+      const response = await ClearChatMessages(selectedChat._id);
+
+      if (response.success) {
+        const updatedChats = allChats.map((chat) => {
+          if (chat._id === selectedChat._id) {
+            return response.data;
+          }
+          return chat;
+        });
+        dispatch(SetAllChats(updatedChats));
+      }
+    } catch (error) {
       toast.error(error.message);
     }
   };
@@ -77,13 +105,61 @@ function ChatArea({ socket }) {
 
   useEffect(() => {
     getMessages();
+    if (selectedChat?.lastMessage?.sender !== user._id) {
+      clearUnreadMessages();
+    }
+
+    // receive message from server using socket
+    socket.on("receive-message", (message) => {
+      const tempSelectedChat = store.getState().userReducer.selectedChat;
+      if (tempSelectedChat._id === message.chat) {
+        setMessages((messages) => [...messages, message]);
+      }
+
+      if (
+        tempSelectedChat._id === message.chat &&
+        message.sender !== user._id
+      ) {
+        clearUnreadMessages();
+      }
+    });
+
+    // clear unread messages from server using socket
+    socket.on("unread-messages-cleared", (data) => {
+      const tempAllChats = store.getState().userReducer.allChats;
+      const tempSelectedChat = store.getState().userReducer.selectedChat;
+
+      if (data.chat === tempSelectedChat._id) {
+        // update unreadmessages count in selected chat
+        const updatedChats = tempAllChats.map((chat) => {
+          if (chat._id === data.chat) {
+            return {
+              ...chat,
+              unreadMessages: 0,
+            };
+          }
+          return chat;
+        });
+        dispatch(SetAllChats(updatedChats));
+
+        // set all messages as read
+        setMessages((prevMessages) => {
+          return prevMessages.map((message) => {
+            return {
+              ...message,
+              read: true,
+            };
+          });
+        });
+      }
+    });
   }, [selectedChat]);
 
   useEffect(() => {
     // always scroll to bottom for messages id
     const messagesContainer = document.getElementById("messages");
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }, [messages, isReceipentTyping]);
+  }, [messages]);
 
   const onUploadImageClick = (e) => {
     const file = e.target.files[0];
@@ -169,13 +245,6 @@ function ChatArea({ socket }) {
               </div>
             );
           })}
-          {isReceipentTyping && (
-            <div className="pb-10">
-              <h1 className="bg-blue-100 text-primary  p-2 rounded-xl w-max">
-                typing...
-              </h1>
-            </div>
-          )}
         </div>
       </div>
 
@@ -195,10 +264,6 @@ function ChatArea({ socket }) {
               onChange={onUploadImageClick}
             />
           </label>
-          <i
-            class="ri-emotion-line cursor-pointer text-xl"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          ></i>
         </div>
 
         <input
@@ -208,6 +273,11 @@ function ChatArea({ socket }) {
           value={newMessage}
           onChange={(e) => {
             setNewMessage(e.target.value);
+            socket.emit("typing", {
+              chat: selectedChat._id,
+              members: selectedChat.members.map((mem) => mem._id),
+              sender: user._id,
+            });
           }}
         />
         <button
