@@ -7,8 +7,11 @@ import toast from "react-hot-toast";
 import moment from "moment";
 import { SetAllChats } from "../../../redux/userSlice";
 import store from "../../../redux/store";
+import EmojiPicker from "emoji-picker-react";
 
 function ChatArea({ socket }) {
+  const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
+  const [isReceipentTyping, setIsReceipentTyping] = React.useState(false);
   const dispatch = useDispatch();
   const [newMessage, setNewMessage] = React.useState("");
   const { selectedChat, user, allChats } = useSelector(
@@ -40,6 +43,7 @@ function ChatArea({ socket }) {
 
       if (response.success) {
         setNewMessage("");
+        setShowEmojiPicker(false);
       }
     } catch (error) {
       console.log(error);
@@ -153,13 +157,24 @@ function ChatArea({ socket }) {
         });
       }
     });
+
+    // receipent typing
+    socket.on("started-typing", (data) => {
+      const selctedChat = store.getState().userReducer.selectedChat;
+      if (data.chat === selctedChat._id && data.sender !== user._id) {
+        setIsReceipentTyping(true);
+      }
+      setTimeout(() => {
+        setIsReceipentTyping(false);
+      }, 1500);
+    });
   }, [selectedChat]);
 
   useEffect(() => {
     // always scroll to bottom for messages id
     const messagesContainer = document.getElementById("messages");
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }, [messages]);
+  }, [messages, isReceipentTyping]);
 
   const onUploadImageClick = (e) => {
     const file = e.target.files[0];
@@ -224,6 +239,13 @@ function ChatArea({ socket }) {
                     {getDateInRegualarFormat(message.createdAt)}
                   </h1>
                 </div>
+                {isCurrentUserIsSender && (
+                  <i
+                    className={`ri-check-double-line p-1 ${
+                      message.read ? "text-green-500" : ""
+                    }`}
+                  ></i>
+                )}
                 {isCurrentUserIsSender && message.read && (
                   <div className="p-2">
                     {receipentUser.profilePic && (
@@ -245,12 +267,30 @@ function ChatArea({ socket }) {
               </div>
             );
           })}
+          {isReceipentTyping && (
+            <div className="pb-10">
+              <h1 className="bg-blue-100 text-primary  p-2 rounded-xl w-max">
+                typing...
+              </h1>
+            </div>
+          )}
         </div>
       </div>
 
       {/* 3rd part chat input */}
 
       <div className="h-18 rounded-xl border-gray-300 shadow border flex justify-between p-2 items-center relative">
+        {showEmojiPicker && (
+          <div className="absolute -top-96 left-0">
+            <EmojiPicker
+              height={350}
+              onEmojiClick={(e) => {
+                setNewMessage(newMessage + e.emoji);
+              }}
+            />
+          </div>
+        )}
+
         <div className="flex gap-2 text-xl">
           <label for="file">
             <i class="ri-link cursor-pointer text-xl" typeof="file"></i>
@@ -264,6 +304,10 @@ function ChatArea({ socket }) {
               onChange={onUploadImageClick}
             />
           </label>
+          <i
+            class="ri-emotion-line cursor-pointer text-xl"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          ></i>
         </div>
 
         <input

@@ -7,7 +7,7 @@ import { SetAllChats, SetSelectedChat } from "../../../redux/userSlice";
 import moment from "moment";
 import store from "../../../redux/store";
 
-function UsersList({ searchKey }) {
+function UsersList({ searchKey, socket, onlineUsers }) {
   const { allUsers, allChats, user, selectedChat } = useSelector(
     (state) => state.userReducer
   );
@@ -123,6 +123,36 @@ function UsersList({ searchKey }) {
     }
   };
 
+  useEffect(() => {
+    socket.on("receive-message", (message) => {
+      // if the chat area opened is not equal to chat in message , then increase unread messages by 1 and update last message
+      const tempSelectedChat = store.getState().userReducer.selectedChat;
+      let tempAllChats = store.getState().userReducer.allChats;
+      if (tempSelectedChat?._id !== message.chat) {
+        const updatedAllChats = tempAllChats.map((chat) => {
+          if (chat._id === message.chat) {
+            return {
+              ...chat,
+              unreadMessages: (chat?.unreadMessages || 0) + 1,
+              lastMessage: message,
+              updatedAt: message.createdAt,
+            };
+          }
+          return chat;
+        });
+        tempAllChats = updatedAllChats;
+      }
+
+      // always latest message chat will be on top
+      const latestChat = tempAllChats.find((chat) => chat._id === message.chat);
+      const otherChats = tempAllChats.filter(
+        (chat) => chat._id !== message.chat
+      );
+      tempAllChats = [latestChat, ...otherChats];
+      dispatch(SetAllChats(tempAllChats));
+    });
+  }, []);
+
   return (
     <div className="flex flex-col gap-3 mt-5 lg:w-96 xl:w-96 md:w-60 sm:w-60">
       {getData().map((chatObjOrUserObj) => {
@@ -160,6 +190,11 @@ function UsersList({ searchKey }) {
                 <div className="flex gap-1">
                   <div className="flex gap-1 items-center">
                     <h1>{userObj.name}</h1>
+                    {onlineUsers.includes(userObj._id) && (
+                      <div>
+                        <div className="bg-green-700 h-3 w-3 rounded-full"></div>
+                      </div>
+                    )}
                   </div>
                   {getUnreadMessages(userObj)}
                 </div>
