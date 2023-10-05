@@ -88,7 +88,6 @@ function ProtectedRoute({ children }) {
         </div>
       </div>
 
-      {/* content (pages) */}
       <div className="py-5">{children}</div>
     </div>
   );
