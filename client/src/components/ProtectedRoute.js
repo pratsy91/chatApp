@@ -55,7 +55,7 @@ function ProtectedRoute({ children }) {
               navigate("/");
             }}
           >
-            SHEYCHAT
+            CHAT-APP
           </h1>
         </div>
         <div className="flex gap-2 text-md items-center bg-white p-2 rounded">
